@@ -292,7 +292,7 @@ def test_main_builds_the_engine_from_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("SERVICE_PORT", "9999")
     seen, started = [], {}
     monkeypatch.setattr(module, "create_app", lambda client, **kwargs: seen.append(client) or "app")
-    monkeypatch.setattr("uvicorn.run", lambda app, host, port: started.update(app=app, host=host, port=port))
+    monkeypatch.setattr("uvicorn.Server.run", lambda self: started.update(app=self.config.app, host=self.config.host, port=self.config.port))
     module.main()
     assert started["port"] == 9999 and started["host"] == "127.0.0.1"
     assert seen[0].num_thread == 2 and seen[0].version == "1.1" and seen[0].voices == ["af_heart"]
