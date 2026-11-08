@@ -46,7 +46,7 @@ rem git-ignored tools\deploy.local.ini (copy tools\deploy.local.example.ini) so 
 setlocal enabledelayedexpansion
 if exist "%~dp0tools\deploy.local.ini" for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0tools\deploy.local.ini") do set "%%A=%%B"
 if not defined DEPLOY_HOST set "DEPLOY_HOST=lex@scutiserver1.local"
-if not defined DEPLOY_DIR set "DEPLOY_DIR=/media/ZimaOS-HD/Apps/TTS_Paradee_Model"
+if not defined DEPLOY_DIR set "DEPLOY_DIR=/media/ZimaOS-HD/Apps/ModelServices/TTS_Paradee_Model"
 if not defined DEPLOY_WEB_PORT set "DEPLOY_WEB_PORT=7681"
 for %%I in ("%~dp0.") do set "ROOT=%%~fI"
 
