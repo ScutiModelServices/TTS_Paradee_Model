@@ -10,6 +10,7 @@ services:
     build: .
     image: tts_paradee_model:latest
     restart: unless-stopped
+    mem_limit: ${SERVICE_MEM_LIMIT:-0}  # 0 = no cap; a cap makes an out-of-memory kill stay inside this container
     environment:
       SERVICE_ADMIN_PASSWORD: ${SERVICE_ADMIN_PASSWORD:-}
       SERVICE_NUM_THREAD: ${SERVICE_NUM_THREAD:-}

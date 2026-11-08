@@ -46,6 +46,7 @@ In `.env` next to `docker-compose.yml`:
 | Variable | Default | Effect |
 |---|---|---|
 | `SERVICE_REPLICAS` | `1` | Number of `tts_paradee_model` containers. Read by Compose. |
+| `SERVICE_MEM_LIMIT` | `0` (no cap) | RAM cap per container, for example `2g` (about 650 MB per replica). An out-of-memory kill then stays in the container instead of starving the host. Read by Compose. |
 | `SERVICE_PORT` | `29321` | Host port `tts_paradee_model_lb` publishes. |
 | `SERVICE_ADMIN_PASSWORD` | empty | Password for `/admin/`. When set, every call except `/health` must send a token as `X-Internal-Token`. Empty = no auth. |
 | `SERVICE_NUM_THREAD` | onnxruntime decides | Starting value for the CPU threads card; a value saved on `/admin/` wins. Use the number of physical cores (`lscpu`: cores x sockets), not logical CPUs; more threads than cores slows every call. |
