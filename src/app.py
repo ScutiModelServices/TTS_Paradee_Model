@@ -126,7 +126,7 @@ def create_app(client: ParadeeEngine | None = None, admin_password: str | None =
         background: list[asyncio.Task] = []
         try:
             if config.get("warm") if config else warm:
-                # In the background: the first start downloads the voice, and /health must answer meanwhile.
+                # In the background: cached weights load while /health remains available.
                 background.append(asyncio.create_task(warm_up()))
             if config or check_hours > 0:
                 background.append(asyncio.create_task(check_forever()))

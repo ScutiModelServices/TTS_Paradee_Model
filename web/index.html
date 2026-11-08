@@ -620,7 +620,12 @@ function renderUpdates(data) {
   $("updates-description").textContent = data.description || "Looks for a newer package on PyPI and newer weights on the Hugging Face Hub.";
   const rows = [];
   if (data.package) rows.push([data.package.name + " package", data.package.installed + (data.package.update ? " → " + data.package.latest : ""), data.package.update]);
-  for (const item of data.weights || []) rows.push([item.repo, short(item.cached) + (item.update ? " → " + short(item.latest) : ""), item.update]);
+  for (const item of data.weights || []) {
+    const downloaded = item.cached ? "Downloaded: " + short(item.cached) : "Not downloaded";
+    const online = item.latest ? "Online: " + short(item.latest) : "Online version unavailable";
+    const newer = !!item.cached && !!item.latest && item.cached !== item.latest;
+    rows.push([item.repo, downloaded + " · " + online + (newer ? " · Newer version available" : ""), newer]);
+  }
   $("update-list").replaceChildren(...rows.map(([name, value, newer]) => {
     const li = document.createElement("li"), left = document.createElement("span"), right = document.createElement("span");
     left.textContent = name;
@@ -629,9 +634,9 @@ function renderUpdates(data) {
     li.append(left, right);
     return li;
   }));
-  $("update-weights").hidden = !(data.weights || []).some(item => item.update);
+  $("update-weights").hidden = !data.enabled;
   $("check-updates").disabled = !data.enabled;
-  $("update-note").textContent = !data.enabled ? "Updates are off while the service runs offline."
+  $("update-note").textContent = !data.enabled ? "Updates are unavailable."
     : data.error ? "Last check failed: " + data.error
     : !data.checked_at ? "Not checked yet."
     : "Checked " + relative(data.checked_at) + "." + (data.package && data.package.update ? " A newer package needs uv lock --upgrade-package " + data.package.name + ", then a rebuild." : "");

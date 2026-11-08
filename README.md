@@ -47,12 +47,14 @@ load them on their next request. `/metrics` (admin password) is Prometheus text 
 
 ## Run
 
+Startup, warm-up and inference never download weights. With no downloaded weights, `/health` answers `ready: false` and speech calls return 503. Open `/admin/` → **Updates** → **Download** before the first call; see the [admin guide](docs/guide-web-ui.md#updates-and-first-download) for the curl alternative.
+
 ```bash
 docker compose up -d --build        # http://<host>:29321
 python tools/bench.py http://127.0.0.1:29321 --save out
 ```
 
-Without Docker: `run.bat` (uv, listens on `127.0.0.1:29321`). The first start downloads 8.5 MB plus the phonemizer data. Memory:
+Without Docker: `run.bat` (uv, listens on `127.0.0.1:29321`). Startup loads downloaded weights only; open `/admin/`, then **Updates → Download** before the first call. Memory:
 about 650 MB per replica, measured with both phonemizers loaded, so `SERVICE_REPLICAS` multiplies it. See `deployment.md`.
 
 ## Tests

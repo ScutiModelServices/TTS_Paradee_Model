@@ -98,7 +98,7 @@ def test_updates_card_checks_and_downloads_without_replica_restart(page):
     sync_api.expect(page.locator("#update-list")).to_contain_text("m")
     page.click("#update-weights")
     sync_api.expect(page.locator("#update-note")).to_contain_text("loads the new files on its next request.")
-    sync_api.expect(page.locator("#update-weights")).to_be_hidden()
+    sync_api.expect(page.locator("#update-weights")).to_be_visible()
     assert "Restart" not in page.locator("#update-note").inner_text()
 
 

@@ -13,4 +13,4 @@ Each path has its own guide. Pick one.
 | Docker on another always-on machine, published with `run.bat` (Deploy) | [guide-docker-deployment-device.md](docs/guide-docker-deployment-device.md) |
 | Directly on Windows, no Docker | [guide-no-docker-same-device.md](docs/guide-no-docker-same-device.md) |
 
-Once it runs, the admin page is covered by [guide-web-ui.md](docs/guide-web-ui.md).
+Before the first call, download weights through Updates; startup does not download them. Once it runs, the admin page is covered by [guide-web-ui.md](docs/guide-web-ui.md).

@@ -26,7 +26,7 @@ the password and any freshly created token. If browser storage is blocked, sign 
 
 The header shows the service address and a health badge with an icon and text: **Healthy**, **Starting**, or
 **Unreachable**. Health is checked without authentication every 10 seconds while signed in. **Starting** means the model
-is not loaded yet (the first start downloads it). Tiles show model readiness, replicas, parallel generations, CPU threads, and active tokens.
+is not loaded yet (download it through Updates before use). Tiles show model readiness, replicas, parallel generations, CPU threads, and active tokens.
 Use **Theme** to cycle between system, light, and dark appearance; this preference is saved in the browser.
 
 ## Tokens
@@ -85,7 +85,7 @@ docker compose restart tts_paradee_model_lb
 | `Wrong admin password` | Password differs from `SERVICE_ADMIN_PASSWORD` in the running container. Recreate it after editing `.env`. |
 | `Admin password required (set SERVICE_ADMIN_PASSWORD)` | The password is empty. Set it and restart. |
 | Token lost | Revoke it and create a new one. |
-| `/health` shows `ready: false` | The model is still loading or downloading, or loading failed (see the container logs). |
+| `/health` shows `ready: false` | The model is not downloaded yet, is loading, or loading failed (see the container logs). |
 | Never expose port 29321 to the internet | It is a LAN tool; use a firewall or VPN for remote access. |
 
 ## Limiting a token to voices
@@ -131,3 +131,13 @@ The browser caps uploads at **10 MiB**, displayed text at **256 KiB**, and binar
 ### This service's request
 
 Speak sends text, an installed voice and speed to `POST /v1/speak`, then displays WAV audio with playback controls and a download. Load voices with the public token: `GET /v1/voices` is filtered by its allowed projects list, which represents voice names for TTS. The installed Paradee version determines the available voices. An optional streaming request receives WAV chunks; the player is created when the bounded audio response finishes.
+
+## Updates and first download
+
+The service starts without weights: health and admin remain available, `ready` is false, and speech calls return 503. Sign in, open **Updates**, then press **Download**. Only this action fetches model files; warm-up and requests use the local cache. Updates checks run at startup and every `update_check_hours` when enabled, or with **Check now**; checks never download. The card shows the downloaded and online revisions and marks a newer version when they differ. Download replaces cached files; every replica drops its old model and loads the new files on its next request.
+
+The equivalent admin request is:
+
+```bash
+curl -X POST http://127.0.0.1:29321/admin/updates/weights -H "X-Internal-Token: <ADMIN_PASSWORD>"
+```
