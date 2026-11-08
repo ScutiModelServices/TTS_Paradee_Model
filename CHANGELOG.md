@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: after Download, a CPU threads change or a sync from another replica drops the loaded model, the service now reloads it in the background (when "Load the model at start" is on) instead of showing "Starting" on `/admin/` until the first request.
 - Compose: optional `SERVICE_MEM_LIMIT` caps the RAM of each API container (default 0 = no cap), like the other CPU model services.
 - Breaking: startup, warm-up and inference load downloaded weights only. Before the first call, open `/admin/` → Updates → Download (or POST `/admin/updates/weights` with the admin token). Missing weights leave health/admin available and speech returns 503. Checks never download; explicit Downloads invalidate every replica.
 
