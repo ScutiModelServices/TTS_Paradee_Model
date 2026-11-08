@@ -1,46 +1,57 @@
 # TTSParadee service: N API replicas behind one nginx address. Each replica runs the model in its own process,
 # so RAM use is per replica; the downloaded weights are shared through the models volume.
-# Start:  docker compose up -d --build          (callers use http://<host>:9160)
-# Scale:  TTSPARADEE_REPLICAS=3 docker compose up -d --build, then: docker compose restart ttsparadee_lb
+# Start:  docker compose up -d --build          (callers use http://<host>:29321)
+# Scale:  SERVICE_REPLICAS=3 docker compose up -d --build, then: docker compose restart tts_paradee_model_lb
 
-name: ttsparadee
+name: tts_paradee_model
 
 services:
-  ttsparadee:
+  tts_paradee_model:
     build: .
+    image: tts_paradee_model:latest
     restart: unless-stopped
+    mem_limit: ${SERVICE_MEM_LIMIT:-0}  # 0 = no cap; a cap makes an out-of-memory kill stay inside this container
     environment:
-      TTSPARADEE_ADMIN_PASSWORD: ${TTSPARADEE_ADMIN_PASSWORD:-}
-      TTSPARADEE_NUM_THREAD: ${TTSPARADEE_NUM_THREAD:-}
-      TTSPARADEE_REPLICAS: ${TTSPARADEE_REPLICAS:-1}  # shown read-only on /admin/
+      SERVICE_ADMIN_PASSWORD: ${SERVICE_ADMIN_PASSWORD:-}
+      SERVICE_NUM_THREAD: ${SERVICE_NUM_THREAD:-}
+      SERVICE_REPLICAS: ${SERVICE_REPLICAS:-1}  # shown read-only on /admin/
     volumes:
-      - models:/models
-      - tokens:/data
+      - tts_paradee_model_models:/models
+      - tts_paradee_model_data:/data
     deploy:
-      replicas: ${TTSPARADEE_REPLICAS:-1}
+      replicas: ${SERVICE_REPLICAS:-1}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9160/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:29321/health')"]
       interval: 15s
       timeout: 5s
       start_period: 300s
-    networks: [ttsparadee]
+    networks: [tts_paradee_model]
 
-  ttsparadee_lb:
+  tts_paradee_model_lb:
+    container_name: tts_paradee_model_lb
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "${TTSPARADEE_PORT:-9160}:9160"
+      - "${SERVICE_PORT:-29321}:29321"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      ttsparadee:
+      tts_paradee_model:
         condition: service_healthy
-    networks: [ttsparadee]
+    networks:
+      tts_paradee_model:
+      citadel:
+        aliases: [tts_paradee_model_lb]
 
 volumes:
-  models:
-  tokens:
-
+  tts_paradee_model_models:
+    name: tts_paradee_model_models
+  tts_paradee_model_data:
+    name: tts_paradee_model_data
 networks:
-  # Other stacks reach http://ttsparadee_lb:9160 by joining this network.
-  ttsparadee:
+  # Other stacks reach http://tts_paradee_model_lb:29321 by joining this network.
+  tts_paradee_model:
+    name: tts_paradee_model
+  citadel:
+    name: citadel_core
+    external: true

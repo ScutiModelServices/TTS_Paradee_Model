@@ -73,9 +73,13 @@ class Voices:
 
 
 def load(version: str, threads: int | None) -> Voices:
+    from huggingface_hub import hf_hub_download
     from paradee import Paradee
 
-    tts = Paradee(version=version, threads=threads or 1)
+    repo, revision = repo_of(version), f"v{version}"
+    model_path = hf_hub_download(repo, MODEL_FILE, revision=revision, local_files_only=True)
+    config_path = hf_hub_download(repo, "config.json", revision=revision, local_files_only=True)
+    tts = Paradee(version=version, threads=threads or 1, model_path=model_path, config_path=config_path)
     for text, voice in (("Warm up.", tts.voices[0]), ("Warm up.", tts.voices[-1])):
         tts(text, voice=voice)  # builds the American and British phonemizers now, not on the first request
     return Voices(tts)
@@ -105,7 +109,7 @@ def _download(version: str) -> None:
 
 def default_marker() -> Path:
     """File in the shared models volume whose content changes when one replica downloads new weights."""
-    configured = os.environ.get("TTSPARADEE_WEIGHTS_MARKER")
+    configured = os.environ.get("SERVICE_WEIGHTS_MARKER")
     return Path(configured) if configured else Path(os.environ.get("HF_HOME") or "~/.cache/huggingface").expanduser() / ".ttsparadee-weights-version"
 
 
@@ -163,7 +167,10 @@ class ParadeeEngine:
     def _model(self) -> Voices:
         with self._load_lock:
             if self._loaded is None:
-                self._loaded = self._loader(self.version, self._threads)
+                try:
+                    self._loaded = self._loader(self.version, self._threads)
+                except OSError:
+                    raise EngineError("Model weights are not downloaded. Ask an admin to press Download on the Updates card.", 503) from None
             return self._loaded
 
     def _name(self, voice: str | None) -> str:

@@ -1,4 +1,4 @@
-"""WAV helpers and the answer cache shared by the text-to-speech services (the same file in TTSPiperModel and TTSParadeeModel)."""
+"""WAV helpers and the answer cache shared by the text-to-speech services (the same file in TTS_Piper_Model and TTS_Paradee_Model)."""
 
 from __future__ import annotations
 

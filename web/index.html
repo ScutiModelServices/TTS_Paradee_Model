@@ -161,6 +161,11 @@ dialog p { overflow-wrap: anywhere; }
   td button { min-height: 44px; }
   .thread-controls { gap: 8px; }
 }
+.connect { display: grid; gap: 8px; margin-top: 12px; }
+.connect-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.connect-row p { margin: 0; }
+.connect-row .mono { font-size: .92em; }
+.connect-group { margin: 14px 0 0; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -199,6 +204,13 @@ dialog p { overflow-wrap: anywhere; }
       <div class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Active tokens</p><p id="token-count" class="tile-value">—</p></div>
     </div>
+    <section id="playground" class="card"></section>
+    <section id="connect-card" class="card" aria-labelledby="connect-title">
+      <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><h2 id="connect-title">Connect to this service</h2></div>
+      <p class="description">Addresses other services can use. Pick the row that matches where the caller runs. Every call except <span class="mono">/health</span> needs a token in <span class="mono">X-Internal-Token</span>; make one under the tokens card.</p>
+      <div id="connect-list" class="connect"></div>
+      <p id="connect-status" class="sr-only" role="status"></p>
+    </section>
     <p id="page-error" class="error" role="alert"></p>
     <section class="card" aria-labelledby="tokens-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 10 7-7m-3 3 3 3m-6 0 3 3M15 14a6 6 0 1 1-5-5 6 6 0 0 1 5 5Z"/><path d="M7 16h.01"/></svg><h2 id="tokens-title">Project tokens</h2></div>
@@ -286,14 +298,16 @@ dialog p { overflow-wrap: anywhere; }
   <p id="revoke-error" class="error" role="alert"></p>
   <div class="dialog-actions"><button id="cancel-revoke" type="button" autofocus>Cancel</button><button id="confirm-revoke" class="danger" type="button">Revoke token</button></div>
 </dialog>
+<script src="playground.js"></script>
 <script>
 // Per-service configuration. The rest of this page is shared verbatim.
-const CONFIG = {title: "TTSParadeeModel", address: location.origin, threadLabel: "CPU threads", threadField: "num_thread", adminEnv: "TTSPARADEE_ADMIN_PASSWORD", replicasEnv: "TTSPARADEE_REPLICAS", extraTile: {label: "Parallel generations", field: "parallel"}, updates: true};
+const CONFIG = {connect: {host: "tts_paradee_model_lb", port: 29321}, title: "TTS_Paradee_Model", address: location.origin, threadLabel: "CPU threads", threadField: "num_thread", adminEnv: "SERVICE_ADMIN_PASSWORD", replicasEnv: "SERVICE_REPLICAS", extraTile: {label: "Parallel generations", field: "parallel"}, updates: true, playground: {"operations":[{"label":"Speak","route":"/v1/speak","method":"POST","fields":[{"key":"text","label":"Text","type":"textarea","required":true,"maxLength":5000,"default":"Hello from the playground."},{"key":"voice","label":"Voice","type":"select","options":[""]},{"key":"speed","label":"Speed","type":"number","min":0.5,"max":2,"step":0.1,"default":1},{"key":"stream","label":"Stream response","type":"checkbox","default":true}],"response":"audio","encoding":"json","lookup":{"route":"/v1/voices","key":"voices","field":"voice","label":"Load allowed voices"}}]}};
 
 const $ = id => document.getElementById(id);
 const storageKey = CONFIG.title + ":admin";
 let admin = "", session = new AbortController(), poll, polling = false, initializedThreads = false;
 let tokenRows = [], pendingRevoke = null, pendingEdit = null, settingRows = [], settingsTimer, savedTimer, copyTimer, tokenVersion = 0;
+const playground = Playground.mount($("playground"), CONFIG.playground, {secrets: () => [admin]});
 let theme = "system";
 try { theme = localStorage.getItem("admin-theme") || "system"; } catch {}
 if (!["system", "light", "dark"].includes(theme)) theme = "system";
@@ -306,6 +320,47 @@ document.title = CONFIG.title + " admin";
 $("signin-title").textContent = document.title;
 $("page-title").textContent = document.title;
 $("address").textContent = CONFIG.address;
+
+/* Connect card: the addresses other services can use. Built from the page's own address and CONFIG.connect. */
+function connectRow(label, url, note) {
+  const row = document.createElement("div"); row.className = "connect-row";
+  const text = document.createElement("div");
+  const name = document.createElement("p"); name.textContent = label;
+  const code = document.createElement("p"); code.className = "mono"; code.textContent = url;
+  text.append(name, code);
+  if (note) { const hint = document.createElement("p"); hint.className = "hint"; hint.textContent = note; text.append(hint); }
+  const button = document.createElement("button"); button.type = "button"; button.textContent = "Copy";
+  button.setAttribute("aria-label", "Copy " + url);
+  button.onclick = async () => {
+    let copied = false;
+    try { await navigator.clipboard.writeText(url); copied = true; } catch {}
+    button.textContent = copied ? "Copied" : "Copy failed";
+    $("connect-status").textContent = copied ? "Copied " + url : "Copy failed. Select the address and copy it manually.";
+    setTimeout(() => { button.textContent = "Copy"; }, 2000);
+  };
+  row.append(text, button);
+  return row;
+}
+function renderConnect() {
+  const list = $("connect-list"), c = CONFIG.connect || {};
+  const port = c.port || location.port, seen = new Set(), rows = [];
+  const add = (label, url, note) => { if (!seen.has(url)) { seen.add(url); rows.push(connectRow(label, url, note)); } };
+  const group = title => { const p = document.createElement("p"); p.className = "connect-group"; p.textContent = title; rows.push(p); };
+  group("Addresses");
+  add("The address you opened this page with", location.origin, "Use this from other machines when it is a LAN name or IP.");
+  const published = location.port || port;  // the host port may differ from the container port
+  add("The same PC", "http://127.0.0.1:" + published, "A program on this machine.");
+  if (c.host) add("Another Docker container", "http://" + c.host + ":" + port, "On the same Docker network: join the network named in the compose file.");
+  add("A Docker container calling this PC", "http://host.docker.internal:" + published, "Docker Desktop, or Linux with host-gateway.");
+  const operations = (CONFIG.playground && CONFIG.playground.operations) || [];
+  if (operations.length) {
+    group("Endpoints");
+    for (const op of operations) add(op.label + " (" + (op.method || "POST") + ")", location.origin + op.route);
+  }
+  add("Health (no token)", location.origin + "/health");
+  list.replaceChildren(...rows);
+}
+renderConnect();
 $("thread-label").textContent = CONFIG.threadLabel;
 $("model-label").textContent = CONFIG.extraTile ? "Model ready" : "Models loaded";
 if (CONFIG.extraTile) {
@@ -330,6 +385,7 @@ function forgetToken() {
   clearTimeout(copyTimer);
 }
 function signOut(focus = true) {
+  playground.reset();
   session.abort();
   session = new AbortController();
   clearInterval(poll);
@@ -564,7 +620,12 @@ function renderUpdates(data) {
   $("updates-description").textContent = data.description || "Looks for a newer package on PyPI and newer weights on the Hugging Face Hub.";
   const rows = [];
   if (data.package) rows.push([data.package.name + " package", data.package.installed + (data.package.update ? " → " + data.package.latest : ""), data.package.update]);
-  for (const item of data.weights || []) rows.push([item.repo, short(item.cached) + (item.update ? " → " + short(item.latest) : ""), item.update]);
+  for (const item of data.weights || []) {
+    const downloaded = item.cached ? "Downloaded: " + short(item.cached) : "Not downloaded";
+    const online = item.latest ? "Online: " + short(item.latest) : "Online version unavailable";
+    const newer = !!item.cached && !!item.latest && item.cached !== item.latest;
+    rows.push([item.repo, downloaded + " · " + online + (newer ? " · Newer version available" : ""), newer]);
+  }
   $("update-list").replaceChildren(...rows.map(([name, value, newer]) => {
     const li = document.createElement("li"), left = document.createElement("span"), right = document.createElement("span");
     left.textContent = name;
@@ -573,9 +634,9 @@ function renderUpdates(data) {
     li.append(left, right);
     return li;
   }));
-  $("update-weights").hidden = !(data.weights || []).some(item => item.update);
+  $("update-weights").hidden = !data.enabled;
   $("check-updates").disabled = !data.enabled;
-  $("update-note").textContent = !data.enabled ? "Updates are off while the service runs offline."
+  $("update-note").textContent = !data.enabled ? "Updates are unavailable."
     : data.error ? "Last check failed: " + data.error
     : !data.checked_at ? "Not checked yet."
     : "Checked " + relative(data.checked_at) + "." + (data.package && data.package.update ? " A newer package needs uv lock --upgrade-package " + data.package.name + ", then a rebuild." : "");

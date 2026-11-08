@@ -1,11 +1,12 @@
 [project]
-name = "ttsparadee-service"
+name = "tts_paradee_model"
 description = "One HTTP service that runs Paradee text-to-speech on the CPU for every project"
 version = "0.1.0"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
+    "python-dotenv==1.2.2",
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "paradee @ https://github.com/sahilmahendrakar/paradee/archive/refs/tags/v1.2.tar.gz",

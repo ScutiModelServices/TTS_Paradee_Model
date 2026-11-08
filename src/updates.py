@@ -36,12 +36,19 @@ class Updates:
 
     async def _check(self) -> dict[str, Any]:
         status: dict[str, Any] = {"checked_at": time.time(), "error": None, "package": None, "weights": []}
+        cached, latest = None, None
+        errors = []
         try:
-            cached, latest = await self._cached_sha(), await self._remote_sha()
-            status["weights"] = [{"repo": self._model, "cached": cached, "latest": latest,
-                                  "update": cached != latest or self._unload_pending}]
+            cached = await self._cached_sha()
         except Exception as error:
-            status["error"] = f"{type(error).__name__}: {error}"
+            errors.append(f"{type(error).__name__}: {error}")
+        try:
+            latest = await self._remote_sha()
+        except Exception as error:
+            errors.append(f"{type(error).__name__}: {error}")
+        status["weights"] = [{"repo": self._model, "cached": cached, "latest": latest,
+                              "update": cached is None or (latest is not None and cached != latest) or self._unload_pending}]
+        status["error"] = "; ".join(errors) or None
         self._status = status
         return self.status()
 
@@ -50,10 +57,9 @@ class Updates:
         async with self._lock:
             try:
                 status = await self._check()
-                if status["error"]:
-                    raise RuntimeError(status["error"])
-                if any(item["cached"] != item["latest"] for item in status["weights"]):
-                    # The download can finish even if its response is lost; keep unload pending on failure.
+                # Metadata failures or local imports must not block the explicit admin download.
+                # A known equal revision only needs unloading, including retry after a lost response.
+                if any(item["latest"] is None or item["cached"] != item["latest"] for item in status["weights"]):
                     self._unload_pending = True
                     await self._download()
                 # Always unload on this explicit admin action. A retry may reach a different replica
