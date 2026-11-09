@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-SHARED = ("web/index.html", "web/playground.js", "src/tokens.py", "src/settings.py", "src/updates.py", ".dockerignore")
+SHARED = ("web/index.html", "web/playground.js", "src/tokens.py", "src/settings.py", "src/updates.py", "src/progress.py", ".dockerignore")
 OWN_COPY = {"src/updates.py": {"DSC_Laya_Model"}}  # DSC_Laya_Model keeps its own update flow (SERVICE-SPECIFIC.md)
 ALLOWED = re.compile(r"^(PREFIX = |const CONFIG = )")  # per-project: token prefix and page config
 
