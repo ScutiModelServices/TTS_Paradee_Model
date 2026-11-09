@@ -201,7 +201,7 @@ dialog p { overflow-wrap: anywhere; }
       <div class="tile"><p id="model-label" class="tile-label">Models loaded</p><p id="model-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Replicas</p><p id="replicas" class="tile-value">—</p></div>
       <div id="extra-tile" class="tile" hidden><p id="extra-label" class="tile-label"></p><p id="extra-value" class="tile-value">—</p></div>
-      <div class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
+      <div id="thread-tile" class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Active tokens</p><p id="token-count" class="tile-value">—</p></div>
     </div>
     <section id="playground" class="card"></section>
@@ -240,7 +240,7 @@ dialog p { overflow-wrap: anywhere; }
         <p class="description">Add a project name above to give it access to this service.</p>
       </div>
     </section>
-    <section class="card" aria-labelledby="threads-title">
+    <section id="threads-card" class="card" aria-labelledby="threads-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9zM9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"/></svg><h2 id="threads-title">CPU threads</h2></div>
       <p class="description">Set how many CPU threads the service uses per request.</p>
       <form id="threads">
@@ -252,11 +252,12 @@ dialog p { overflow-wrap: anywhere; }
         </div>
       </form>
       <p class="description">Saved to settings.json. Other replicas apply it within a few seconds.</p>
+      <p id="thread-note" class="description" hidden></p>
       <p id="gpu-note" class="description" hidden>This service runs on a GPU. CPU threads only serve the parts that run on the CPU.</p>
       <p id="saved" class="saved" role="status"></p>
       <p id="threads-error" class="error" role="alert"></p>
     </section>
-    <section class="card" aria-labelledby="models-title">
+    <section id="project-models-card" class="card" aria-labelledby="models-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5"/></svg><h2 id="models-title">Project models</h2></div>
       <p class="description">Models loaded for one project, as seen by the replica that answered. A project without one uses the base model.</p>
       <ul id="project-models" class="update-list"></ul>
@@ -657,10 +658,14 @@ function renderUpdates(data) {
     : !data.checked_at ? "Not checked yet."
     : "Checked " + relative(data.checked_at) + "." + (data.package && data.package.update ? " A newer package needs uv lock --upgrade-package " + data.package.name + ", then a rebuild." : "");
 }
-/* Tags (CONFIG.tags, the same as docs/purpose.md) switch cards and notes: voice-cloning = Cloned voices card, gpu = threads note, license-restricted = Updates note. */
+/* Tags (CONFIG.tags, the same as docs/purpose.md) switch cards and notes: voice-cloning = Cloned voices card, gpu = threads note, license-restricted = Updates note, host-threads = no CPU threads card (the runtime picks threads), project-models = Project models card. CONFIG.threadNote adds a line to the threads card. */
 const hasTag = tag => (CONFIG.tags || []).includes(tag);
 $("voices-card").hidden = !hasTag("voice-cloning");
 $("gpu-note").hidden = !hasTag("gpu");
+$("thread-note").textContent = CONFIG.threadNote || "";
+$("thread-note").hidden = !CONFIG.threadNote;
+$("threads-card").hidden = $("thread-tile").hidden = hasTag("host-threads");
+$("project-models-card").hidden = !hasTag("project-models");
 $("license-note").hidden = !hasTag("license-restricted");
 function fileBase64(file) {
   return new Promise((resolve, reject) => {

@@ -119,7 +119,7 @@ def test_token_can_be_edited_and_shows_rate_and_expiry(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
     sync_api.expect(page.locator("#dashboard")).to_be_visible()
-    sync_api.expect(page.locator("#project-models-empty")).to_be_visible()
+    sync_api.expect(page.locator("#project-models-card")).to_be_hidden()  # no project-models tag
     page.fill("#name", "Garrison")
     page.fill("#rate", "5")
     page.fill("#expires", "30")
