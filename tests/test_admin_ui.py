@@ -67,6 +67,7 @@ def test_wrong_password_is_rejected(page):
 def test_create_and_revoke_a_token(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#tokens"]')
     sync_api.expect(page.locator("#dashboard")).to_be_visible()
     sync_api.expect(page.locator("#empty")).to_be_visible()
     page.fill("#name", "Garrison")
@@ -90,6 +91,7 @@ def test_health_keeps_backend_specific_model_display(page):
 def test_updates_card_checks_and_downloads_without_replica_restart(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#updates"]')
     sync_api.expect(page.locator("#updates-card")).to_be_visible()
     sync_api.expect(page.locator("#updates-description")).to_contain_text("without downloading")
     sync_api.expect(page.locator("#update-note")).to_have_text("Not checked yet.")
@@ -105,6 +107,7 @@ def test_updates_card_checks_and_downloads_without_replica_restart(page):
 def test_token_can_be_limited_to_projects(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#tokens"]')
     sync_api.expect(page.locator("#dashboard")).to_be_visible()
     page.fill("#name", "Garrison")
     page.fill("#projects", "Bad Name")
@@ -118,6 +121,7 @@ def test_token_can_be_limited_to_projects(page):
 def test_token_can_be_edited_and_shows_rate_and_expiry(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#tokens"]')
     sync_api.expect(page.locator("#dashboard")).to_be_visible()
     sync_api.expect(page.locator("#project-models-card")).to_be_hidden()  # no project-models tag
     page.fill("#name", "Garrison")
@@ -138,6 +142,7 @@ def test_token_can_be_edited_and_shows_rate_and_expiry(page):
 def test_settings_can_be_saved_and_reset(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#runtime"]')
     sync_api.expect(page.locator("#settings-card")).to_be_visible()
     box = page.locator("#setting-max_inflight")
     sync_api.expect(box).to_have_value("0")
@@ -153,8 +158,9 @@ def _open_playground(page):
     """Use separate admin and public credentials."""
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#playground"]')
     sync_api.expect(page.locator("#playground")).to_be_visible()
-    made = page.request.post(page.url.rstrip("/") + "/tokens",
+    made = page.request.post(page.url.split("#", 1)[0].rstrip("/") + "/tokens",
                              headers={"X-Internal-Token": PASSWORD}, data={"name": "playground-browser"})
     assert made.status == 200
     token = made.json()["token"]
@@ -186,6 +192,7 @@ def test_playground_uses_public_route_and_renders_answer(page):
 def test_connect_card_lists_the_addresses_other_services_can_use(page):
     page.fill("#admin", PASSWORD)
     page.click("#signin-button")
+    page.click('#admin-nav a[href="#connections"]')
     sync_api.expect(page.locator("#dashboard")).to_be_visible()
     card = page.locator("#connect-card")
     sync_api.expect(card).to_contain_text("The address you opened this page with")
@@ -193,3 +200,57 @@ def test_connect_card_lists_the_addresses_other_services_can_use(page):
     sync_api.expect(card).to_contain_text("/health")
     port = page.url.split(":")[2].split("/")[0]
     sync_api.expect(card).to_contain_text("http://127.0.0.1:" + port)
+
+
+def test_sidebar_pages_keep_one_header_and_preserve_form_drafts(page):
+    """Navigation changes the visible page without rebuilding active forms."""
+    page.fill("#admin", PASSWORD)
+    page.click("#signin-button")
+    sync_api.expect(page.locator("#page-title")).to_have_text("Overview")
+    sync_api.expect(page.locator("#create")).to_be_hidden()
+    page.click('#admin-nav a[href="#tokens"]')
+    page.fill("#name", "Keep this draft")
+    page.click("#sidebar-toggle")
+    sync_api.expect(page.locator("#sidebar-toggle")).to_have_attribute("aria-expanded", "false")
+    sync_api.expect(page.locator("#name")).to_have_value("Keep this draft")
+    page.click('#admin-nav a[href="#overview"]')
+    page.click('#admin-nav a[href="#tokens"]')
+    sync_api.expect(page.locator("#name")).to_have_value("Keep this draft")
+    sync_api.expect(page.locator("#page-title")).to_have_text("Access tokens")
+    assert page.locator("#dashboard h1").count() == 1
+    page.reload()
+    sync_api.expect(page.locator("#page-title")).to_have_text("Access tokens")
+    sync_api.expect(page.locator("#sidebar-toggle")).to_have_attribute("aria-expanded", "false")
+
+
+def test_sidebar_capabilities_and_history(page):
+    """Unsupported pages cannot be opened through a manually entered hash."""
+    page.fill("#admin", PASSWORD)
+    page.click("#signin-button")
+    sync_api.expect(page.locator("#dashboard")).to_be_visible()
+    tags = page.evaluate("CONFIG.tags")
+    assert page.locator('#admin-nav a[href="#models"]').count() == int("project-models" in tags)
+    assert page.locator('#admin-nav a[href="#voices"]').count() == int("voice-cloning" in tags)
+    page.click('#admin-nav a[href="#connections"]')
+    sync_api.expect(page.locator("#page-title")).to_have_text("Connections")
+    page.go_back()
+    sync_api.expect(page.locator("#page-title")).to_have_text("Overview")
+    page.go_forward()
+    sync_api.expect(page.locator("#page-title")).to_have_text("Connections")
+    page.evaluate("location.hash = '#unsupported'")
+    sync_api.expect(page.locator("#page-title")).to_have_text("Overview")
+
+
+def test_sidebar_responsive_layout_and_keyboard_toggle(page):
+    """Both sidebar states retain navigation without horizontal page overflow."""
+    page.fill("#admin", PASSWORD)
+    page.click("#signin-button")
+    sync_api.expect(page.locator("#dashboard")).to_be_visible()
+    for width in (1280, 768, 375, 320):
+        page.set_viewport_size({"width": width, "height": 900})
+        for expanded in (False, True):
+            page.locator("#sidebar-toggle").focus()
+            page.keyboard.press("Enter")
+            sync_api.expect(page.locator("#sidebar-toggle")).to_have_attribute("aria-expanded", str(expanded).lower())
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            assert page.locator("#admin-sidebar").bounding_box()["x"] < page.locator("#page-content").bounding_box()["x"]
