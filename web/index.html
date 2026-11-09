@@ -166,6 +166,108 @@ dialog p { overflow-wrap: anywhere; }
 .connect-row p { margin: 0; }
 .connect-row .mono { font-size: .92em; }
 .connect-group { margin: 14px 0 0; font-weight: 600; }
+/* Shared multi-page shell. Route wrappers preserve each feature's own visibility. */
+body:has(#dashboard:not([hidden])) .column { max-width: none; height: 100%; padding: 0; }
+#dashboard { --sidebar-width: 224px; display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); height: 100%; }
+#dashboard.is-collapsed { --sidebar-width: 64px; }
+.admin-sidebar { display: flex; flex-direction: column; gap: 28px; padding: 24px 12px 16px; min-width: 0; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; }
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+.sidebar-brand .brand-icon { width: 32px; height: 32px; }
+.sidebar-brand strong { font-size: .9em; font-weight: 600; }
+.sidebar-service { padding: 0 8px; overflow-wrap: anywhere; }
+.sidebar-service strong { display: block; font-weight: 600; margin-bottom: 4px; }
+.sidebar-service .address { font-size: .75em; }
+.admin-nav { display: grid; gap: 5px; }
+.admin-nav a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px; color: var(--muted); text-decoration: none; border-radius: var(--radius-md); font-size: .9em; }
+.admin-nav a:hover { color: var(--text); background: var(--code-bg); }
+.admin-nav a[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--bg)); font-weight: 600; }
+.admin-nav svg { width: 18px; height: 18px; }
+.sidebar-footer { display: grid; gap: 10px; margin-top: auto; }
+.sidebar-footer button { width: 100%; font-size: .8em; }
+.sidebar-footer svg { width: 18px; height: 18px; }
+.admin-workspace { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#dashboard .header { margin: 0; padding: 16px 28px; gap: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+#dashboard .header h1 { font-size: 1.2em; margin-right: auto; }
+#sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 6px 10px; border-radius: var(--radius-md); font-size: .8em; }
+#sidebar-toggle svg { width: 17px; height: 17px; }
+#page-content { flex: 1; min-height: 0; overflow-y: auto; padding: 28px; scrollbar-color: var(--border) var(--bg); }
+.page-view { max-width: 1120px; margin: 0 auto; }
+.page-view > .description { margin-bottom: 24px; }
+.page-view .card { border: 0; background: transparent; border-radius: 0; padding: 0; margin: 0 0 28px; }
+.page-view > .card + .card { padding-top: 24px; border-top: 1px solid var(--border); }
+.page-view[data-page="tokens"] > .card > .section-heading,
+.page-view[data-page="connections"] > .card > .section-heading,
+.page-view[data-page="updates"] > .card > .section-heading,
+.page-view[data-page="models"] > .card > .section-heading,
+.page-view[data-page="voices"] > .card > .section-heading,
+#pg-title { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.page-view button { border-radius: var(--radius-md); font-weight: 500; }
+.page-view .tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px; margin-bottom: 32px; }
+.page-view .tile { border: 0; border-right: 1px solid var(--border); border-radius: 0; background: transparent; padding: 0 16px 0 0; }
+.page-view .tile:last-child { border-right: 0; }
+.readiness { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px; border-radius: var(--radius-lg); margin-bottom: 28px; background: color-mix(in srgb, var(--warning) 10%, var(--bg)); }
+.readiness[data-state="Healthy"] { background: color-mix(in srgb, var(--success) 10%, var(--bg)); }
+.readiness[data-state="Unreachable"] { background: color-mix(in srgb, var(--status-failed) 10%, var(--bg)); }
+.readiness p { margin-top: 5px; }
+.page-link { color: var(--accent); text-underline-offset: 3px; }
+.overview-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 30px; margin: 16px 0 28px; }
+.overview-details dt { font-size: .8em; color: var(--muted); margin-bottom: 4px; }
+.overview-details dd { margin: 0; overflow-wrap: anywhere; }
+.overview-usage { padding-top: 22px; border-top: 1px solid var(--border); }
+.overview-usage header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.overview-usage table { table-layout: auto; }
+.overview-usage th:last-child, .overview-usage td:last-child { text-align: right; }
+.table-scroll { overflow-x: auto; }
+#dashboard.is-collapsed .sidebar-brand { padding: 0; justify-content: center; }
+#dashboard.is-collapsed .sidebar-brand strong, #dashboard.is-collapsed .sidebar-service { display: none; }
+#dashboard.is-collapsed .nav-label, #dashboard.is-collapsed .footer-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#dashboard.is-collapsed .admin-sidebar { padding-left: 8px; padding-right: 8px; }
+#dashboard.is-collapsed .admin-nav a { justify-content: center; padding: 10px; }
+#dashboard.is-collapsed .sidebar-footer button { padding: 9px; }
+#dashboard.is-collapsed .sidebar-footer svg { display: inline; }
+.sidebar-footer svg { vertical-align: middle; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+input, textarea { caret-color: var(--accent); }
+@media (max-width: 767px) {
+  #dashboard { --sidebar-width: 164px; }
+  #dashboard .header { padding: 14px 18px; }
+  #page-content { padding: 24px 18px; }
+  .admin-sidebar { padding-left: 8px; padding-right: 8px; }
+  .sidebar-brand { padding: 0 4px; }
+  .sidebar-brand strong { font-size: .8em; }
+  .readiness { flex-wrap: wrap; }
+}
+@media (max-width: 540px) {
+  #dashboard { --sidebar-width: 112px; }
+  #dashboard .header { padding: 12px; gap: 10px; }
+  #page-content { padding: 22px 12px; }
+  .admin-sidebar { padding-top: 18px; gap: 22px; }
+  .sidebar-brand strong { display: none; }
+  .sidebar-service { padding: 0 4px; font-size: .8em; }
+  .sidebar-service .address { display: none; }
+  .admin-nav a { padding: 9px 6px; font-size: .8em; overflow-wrap: anywhere; }
+  .admin-nav svg { display: none; }
+  #dashboard.is-collapsed .admin-nav svg { display: block; }
+  .sidebar-footer .theme .footer-label { display: none; }
+  #sidebar-toggle { min-height: 44px; }
+  #sidebar-toggle .toggle-label { display: none; }
+  .overview-details { grid-template-columns: 1fr; }
+  .page-view .tiles { grid-template-columns: 1fr; gap: 16px; }
+  .page-view .tile { border-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .page-view .tile-value { font-size: 1.4em; }
+  .page-view .card { min-width: 0; }
+  .page-view .create-form .field { flex-basis: 100%; }
+  .page-view .thread-controls input[type="number"] { width: 70px; }
+  .page-view .update-list li { flex-wrap: wrap; }
+  .overview-usage header { flex-wrap: wrap; }
+  .overview-usage table { min-width: 260px; }
+  .overview-usage thead { position: static; width: auto; height: auto; clip-path: none; }
+  .overview-usage table { display: table; }
+  .overview-usage tbody { display: table-row-group; }
+  .overview-usage tr { display: table-row; }
+  .overview-usage td { display: table-cell; width: auto; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+  .readiness { padding: 15px; }
+}
 </style>
 </head>
 <body>
@@ -175,7 +277,7 @@ dialog p { overflow-wrap: anywhere; }
     <div class="card">
       <img class="brand-icon" src="icon.png" alt="">
       <h1 id="signin-title">Service admin</h1>
-      <p class="description">Manage project access and CPU threads.</p>
+      <p class="description">Manage service health, access and model configuration.</p>
       <form id="login">
         <label for="admin">Admin password</label>
         <input id="admin" type="password" autocomplete="current-password" required aria-describedby="login-error">
@@ -186,24 +288,36 @@ dialog p { overflow-wrap: anywhere; }
     <p class="muted">Your sign-in stays in this browser tab until you sign out.</p>
   </section>
   <section id="dashboard" hidden aria-labelledby="page-title">
-    <header class="header">
-      <div class="identity">
-        <img class="brand-icon" src="icon.png" alt="">
-        <div><h1 id="page-title">Service admin</h1><p id="address" class="address mono"></p></div>
+    <aside id="admin-sidebar" class="admin-sidebar" aria-label="Service navigation">
+      <div class="sidebar-brand"><img class="brand-icon" src="icon.png" alt=""><strong>Model services</strong></div>
+      <div class="sidebar-service"><strong id="service-name"></strong><p id="address" class="address mono"></p></div>
+      <nav id="admin-nav" class="admin-nav" aria-label="Admin pages"></nav>
+      <div class="sidebar-footer">
+        <button id="theme" class="theme" type="button" aria-label="Change color theme"></button>
+        <button id="signout" type="button" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H4v14h5m5-12 5 5-5 5m-6-5h11"/></svg><span class="footer-label">Sign out</span></button>
       </div>
+    </aside>
+    <div class="admin-workspace">
+    <header class="header">
+      <button id="sidebar-toggle" type="button" aria-controls="admin-sidebar" aria-expanded="true" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM9 4v16m6-12-3 4 3 4"/></svg><span class="toggle-label">Collapse</span></button>
+      <h1 id="page-title" tabindex="-1">Overview</h1>
       <div class="header-actions">
         <span id="health" class="badge" data-state="Starting" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="health-icon" d="M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/></svg><span id="health-text">Starting</span></span>
-        <button id="signout" type="button">Sign out</button>
       </div>
     </header>
-    <div class="toolbar"><p class="eyebrow">Service overview</p><button id="theme" class="theme" type="button">Theme: System</button></div>
-    <div class="tiles" aria-label="Service status">
+    <div id="page-content" aria-labelledby="page-title">
+    <section id="overview-summary">
+      <div id="readiness" class="readiness" data-state="Starting"><div><h2 id="readiness-title">Checking service readiness</h2><p id="readiness-description" class="description">Waiting for the service health response.</p></div><a class="page-link" href="#updates" id="readiness-action">Model updates</a></div>
+    </section>
+    <div id="overview-metrics" class="tiles" aria-label="Service status">
       <div class="tile"><p id="model-label" class="tile-label">Models loaded</p><p id="model-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Replicas</p><p id="replicas" class="tile-value">—</p></div>
       <div id="extra-tile" class="tile" hidden><p id="extra-label" class="tile-label"></p><p id="extra-value" class="tile-value">—</p></div>
       <div id="thread-tile" class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Active tokens</p><p id="token-count" class="tile-value">—</p></div>
     </div>
+    <section id="overview-details-section"><h2>Service details</h2><dl class="overview-details"><div><dt>Model</dt><dd id="overview-model">—</dd></div><div><dt>Service</dt><dd id="overview-service" class="mono"></dd></div><div><dt>Address</dt><dd id="overview-address" class="mono"></dd></div><div><dt>Inference endpoints</dt><dd id="overview-endpoints" class="mono"></dd></div></dl></section>
+    <section id="overview-usage" class="overview-usage"><header><h2>Token usage</h2><a class="page-link" href="#tokens">Manage tokens</a></header><div class="table-scroll"><table><caption class="sr-only">Current request counts by token</caption><thead><tr><th scope="col">Token</th><th scope="col">Requests</th></tr></thead><tbody id="usage-rows"></tbody></table></div><p id="usage-empty" class="description">No tokens yet. Create one on the Access tokens page.</p></section>
     <section id="playground" class="card"></section>
     <section id="connect-card" class="card" aria-labelledby="connect-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><h2 id="connect-title">Connect to this service</h2></div>
@@ -212,7 +326,7 @@ dialog p { overflow-wrap: anywhere; }
       <p id="connect-status" class="sr-only" role="status"></p>
     </section>
     <p id="page-error" class="error" role="alert"></p>
-    <section class="card" aria-labelledby="tokens-title">
+    <section id="tokens-card" class="card" aria-labelledby="tokens-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 10 7-7m-3 3 3 3m-6 0 3 3M15 14a6 6 0 1 1-5-5 6 6 0 0 1 5 5Z"/><path d="M7 16h.01"/></svg><h2 id="tokens-title">Project tokens</h2></div>
       <p class="description">Give each project its own access. Revoke a token to stop its requests.</p>
       <form id="create" class="create-form">
@@ -296,6 +410,8 @@ dialog p { overflow-wrap: anywhere; }
       <p id="settings-error" class="error" role="alert"></p>
     </section>
     <p id="workers" class="hint"></p>
+    </div>
+    </div>
   </section>
 </div>
 </main>
@@ -329,13 +445,21 @@ try { theme = localStorage.getItem("admin-theme") || "system"; } catch {}
 if (!["system", "light", "dark"].includes(theme)) theme = "system";
 function applyTheme() {
   document.documentElement.style.colorScheme = theme === "system" ? "light dark" : theme;
-  $("theme").textContent = "Theme: " + theme[0].toUpperCase() + theme.slice(1);
+  const label = "Theme: " + theme[0].toUpperCase() + theme.slice(1);
+  $("theme").innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9zM12 3v9h9"/></svg><span class="footer-label"></span>';
+  $("theme").querySelector("span").textContent = label;
+  $("theme").title = label;
+  $("theme").setAttribute("aria-label", label + ". Change color theme");
 }
 applyTheme();
 document.title = CONFIG.title + " admin";
 $("signin-title").textContent = document.title;
-$("page-title").textContent = document.title;
+$("service-name").textContent = CONFIG.title.replace(/_Model$/, "").replace(/^[A-Z]+_/, "");
 $("address").textContent = CONFIG.address;
+$("overview-service").textContent = CONFIG.title;
+$("overview-address").textContent = CONFIG.address;
+$("overview-endpoints").textContent = (CONFIG.playground.operations || []).map(op => (op.method || "POST") + " " + op.route).join(" · ");
+$("readiness-action").hidden = !CONFIG.updates;
 
 /* Connect card: the addresses other services can use. Built from the page's own address and CONFIG.connect. */
 function connectRow(label, url, note) {
@@ -521,7 +645,15 @@ function renderProjectModels(data) {
 }
 function renderTokens(rows) {
   tokenRows = rows;
-  $("token-count").textContent = rows.length;
+  $("token-count").textContent = rows.filter(row => !row.expires || row.expires * 1000 > Date.now()).length;
+  $("usage-empty").hidden = !!rows.length;
+  $("usage-rows").replaceChildren(...rows.map(row => {
+    const tr = document.createElement("tr"), name = document.createElement("td"), requests = document.createElement("td");
+    name.textContent = row.name;
+    requests.textContent = String(row.requests ?? 0);
+    tr.append(name, requests);
+    return tr;
+  }));
   $("token-table").hidden = !rows.length;
   $("empty").hidden = !!rows.length;
   const existing = new Map([...$("rows").children].map(tr => [tr.dataset.tokenId, tr]));
@@ -617,6 +749,13 @@ async function refreshHealth() {
   const state = !data || data.status !== "ok" ? "Unreachable" : data.model && !data.ready ? "Starting" : "Healthy";
   $("health").dataset.state = state;
   $("health-text").textContent = state;
+  const readiness = !data || data.status !== "ok" ? "Unreachable" : data.ready === false ? "Starting" : "Healthy";
+  $("readiness").dataset.state = readiness;
+  $("readiness-title").textContent = readiness === "Healthy" ? "Ready to serve" : readiness === "Starting" ? "Model not ready" : "Service unreachable";
+  $("readiness-description").textContent = readiness === "Healthy" ? "The service is available to accept inference requests."
+    : readiness === "Starting" ? "Inference is not ready. Check downloaded weights and runtime configuration."
+    : "Health check failed. Check the connection and try again.";
+  $("overview-model").textContent = !data ? "Unavailable" : typeof data.model === "string" ? data.model : data.models ? "Project-specific models" : "See model updates";
   $("health-icon").setAttribute("d", state === "Healthy"
     ? "m8 12 3 3 5-6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"
     : state === "Starting" ? "M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"
@@ -667,6 +806,92 @@ $("thread-note").hidden = !CONFIG.threadNote;
 $("threads-card").hidden = $("thread-tile").hidden = hasTag("host-threads");
 $("project-models-card").hidden = !hasTag("project-models");
 $("license-note").hidden = !hasTag("license-restricted");
+
+/** Own page routing and sidebar presentation without remounting forms or requests. */
+class AdminNavigation {
+  constructor(config) {
+    this.config = config;
+    this.dashboard = $("dashboard");
+    this.content = $("page-content");
+    this.toggle = $("sidebar-toggle");
+    this.storageKey = config.title + ":sidebar-collapsed";
+    this.pages = [
+      {id: "overview", label: "Overview", description: "Health, readiness and access at a glance.", nodes: ["overview-summary", "overview-metrics", "overview-details-section", "overview-usage"], icon: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"},
+      {id: "playground", label: "Playground", description: "Test model requests with a public service token.", nodes: ["playground"], icon: "m9 3 0 6-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"},
+      {id: "tokens", label: "Access tokens", description: "Manage scoped access, rate limits and expiration.", nodes: ["tokens-card"], icon: "M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM11 11v10m0-4h4m-4 4h3"},
+      {id: "runtime", label: "Runtime & settings", description: "Resource controls and model configuration.", nodes: ["threads-card", "settings-card", "workers"], icon: "M4 7h16M4 17h16M8 4v6m8 4v6"},
+      ...(config.updates ? [{id: "updates", label: "Model updates", description: "Check availability and explicitly download model weights.", nodes: ["updates-card"], icon: "M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"}] : []),
+      {id: "connections", label: "Connections", description: "Use the address that matches where your caller runs.", nodes: ["connect-card"], icon: "m9 15 6-6m-8 4-2 2a4 4 0 0 0 6 6l2-2m-2-14 2-2a4 4 0 0 1 6 6l-2 2"},
+      ...(hasTag("project-models") ? [{id: "models", label: "Project models", description: "Models available to scoped projects.", nodes: ["project-models-card"], icon: "m12 3-9 5 9 5 9-5-9-5ZM3 13l9 5 9-5M3 18l9 5 9-5"}] : []),
+      ...(hasTag("voice-cloning") ? [{id: "voices", label: "Cloned voices", description: "Reference clips and transcripts shared across replicas.", nodes: ["voices-card"], icon: "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0V5ZM5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8"}] : [])
+    ];
+    for (const page of this.pages) {
+      page.view = document.createElement("section");
+      page.view.className = "page-view";
+      page.view.id = "page-" + page.id;
+      page.view.dataset.page = page.id;
+      page.view.setAttribute("aria-labelledby", "page-title");
+      const description = document.createElement("p");
+      description.className = "description";
+      description.textContent = page.description;
+      page.view.append(description, ...page.nodes.map(id => $(id)));
+      this.content.append(page.view);
+      page.link = document.createElement("a");
+      page.link.href = "#" + page.id;
+      page.link.title = page.label;
+      page.link.setAttribute("aria-label", page.label);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS(svg.namespaceURI, "path");
+      path.setAttribute("d", page.icon);
+      svg.append(path);
+      const text = document.createElement("span");
+      text.className = "nav-label";
+      text.textContent = page.label;
+      page.link.append(svg, text);
+      $("admin-nav").append(page.link);
+    }
+    this.content.prepend($("page-error"));
+    if (hasTag("host-threads")) {
+      const note = document.createElement("p");
+      note.className = "description";
+      note.textContent = "The host runtime manages CPU threads for this service. No live CPU thread control is available here.";
+      this.pages.find(page => page.id === "runtime").view.insertBefore(note, $("threads-card"));
+    }
+    let collapsed = false;
+    try { collapsed = localStorage.getItem(this.storageKey) === "true"; } catch {}
+    this.setCollapsed(collapsed);
+    this.toggle.addEventListener("click", () => {
+      const next = !this.dashboard.classList.contains("is-collapsed");
+      this.setCollapsed(next);
+      try { localStorage.setItem(this.storageKey, String(next)); } catch {}
+    });
+    window.addEventListener("hashchange", () => this.show(true));
+    this.show(false);
+  }
+  setCollapsed(collapsed) {
+    this.dashboard.classList.toggle("is-collapsed", collapsed);
+    this.toggle.setAttribute("aria-expanded", String(!collapsed));
+    this.toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+    this.toggle.querySelector("span").textContent = collapsed ? "Expand" : "Collapse";
+    this.toggle.querySelector("path").setAttribute("d", collapsed ? "M4 4h16v16H4zM9 4v16m3-12 3 4-3 4" : "M4 4h16v16H4zM9 4v16m6-12-3 4 3 4");
+  }
+  show(focus) {
+    const page = this.pages.find(item => item.id === location.hash.slice(1)) || this.pages[0];
+    if (location.hash !== "#" + page.id) history.replaceState(null, "", "#" + page.id);
+    for (const item of this.pages) {
+      item.view.hidden = item !== page;
+      if (item === page) item.link.setAttribute("aria-current", "page");
+      else item.link.removeAttribute("aria-current");
+    }
+    $("page-title").textContent = page.label;
+    document.title = page.label + " · " + this.config.title;
+    this.content.scrollTop = 0;
+    if (focus && !this.dashboard.hidden) $("page-title").focus({preventScroll: true});
+  }
+}
+const navigation = new AdminNavigation(CONFIG);
 function fileBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

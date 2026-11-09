@@ -21,6 +21,7 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field
 
 from audio import AudioCache, wav_bytes, wav_header
+from disconnect import CallerGone, Measure, first_piece
 from engine import DEFAULT_VERSION, EngineError, ParadeeEngine, default_marker
 from options import SETTINGS
 import settings
@@ -194,7 +195,7 @@ def create_app(client: ParadeeEngine | None = None, admin_password: str | None =
         return {"voices": names, "default": client.default_voice}
 
     @app.post("/v1/speak")
-    async def speak(body: SpeakRequest, allowed: list[str] | None = Depends(authorize), _slot: None = Depends(slot)) -> Response:
+    async def speak(body: SpeakRequest, request: Request, allowed: list[str] | None = Depends(authorize), _slot: None = Depends(slot)) -> Response:
         name = body.voice or client.default_voice
         check_scope(allowed, name)
         started = time.perf_counter()
@@ -205,7 +206,7 @@ def create_app(client: ParadeeEngine | None = None, admin_password: str | None =
             return wav_reply(audio, started, "hit")
         try:
             if body.stream:
-                return await stream_reply(body, name, key, size)
+                return await stream_reply(request, body, name, key, size)
             audio = await client.synthesize(body.text, body.voice, body.speed)
         except EngineError as error:
             raise HTTPException(error.status or 500, str(error)) from None
@@ -220,12 +221,15 @@ def create_app(client: ParadeeEngine | None = None, admin_password: str | None =
             "X-Audio-Seconds": f"{audio['seconds']:.3f}", "X-Voice": audio["voice"], "X-Cache": cached,
             "X-Duration-Ms": str(round((time.perf_counter() - started) * 1000))})
 
-    async def stream_reply(body: SpeakRequest, name: str, key: tuple, size: int) -> StreamingResponse:
+    async def stream_reply(request: Request, body: SpeakRequest, name: str, key: tuple, size: int) -> Response:
         """Starts the audio before the text is finished. The first sentence is made here, so an unknown voice or a
         failed model still gives a proper HTTP error; once the stream has begun an error can only cut it off."""
         pieces = client.stream(body.text, name, body.speed)
         try:
-            rate, first = await anext(pieces)
+            rate, first = await first_piece(request, pieces)
+        except CallerGone:
+            await pieces.aclose()
+            return Response(status_code=499)  # nobody is listening; the generation is already stopped
         except BaseException:
             await pieces.aclose()
             raise
@@ -313,16 +317,8 @@ def create_app(client: ParadeeEngine | None = None, admin_password: str | None =
 
     latency = LatencyHistogram()
 
-    @app.middleware("http")
-    async def measure(request: Request, call_next):
-        started = time.perf_counter()
-        response = await call_next(request)
-        if request.url.path.startswith("/v1/"):
-            latency.observe(time.perf_counter() - started)
-        token_id = getattr(request.state, "token_id", None)
-        if token_id:
-            await run_in_threadpool(tokens.record, token_id, (time.perf_counter() - started) * 1000, response.status_code >= 500)
-        return response
+    app.add_middleware(Measure, observe=latency.observe,
+                       record=lambda token_id, ms, failed: run_in_threadpool(tokens.record, token_id, ms, failed))
 
     @app.get("/metrics", dependencies=[Depends(admin)])
     def metrics() -> PlainTextResponse:
