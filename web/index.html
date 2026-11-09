@@ -209,6 +209,13 @@ body:has(#dashboard:not([hidden])) .column { max-width: none; height: 100%; padd
 .readiness[data-state="Healthy"] { background: color-mix(in srgb, var(--success) 10%, var(--bg)); }
 .readiness[data-state="Unreachable"] { background: color-mix(in srgb, var(--status-failed) 10%, var(--bg)); }
 .readiness p { margin-top: 5px; }
+.notice { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; border-radius: var(--radius-lg); margin-bottom: 16px; background: color-mix(in srgb, var(--warning) 14%, var(--bg)); }
+.notice p { margin-top: 5px; }
+.notice-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.notice-actions button { min-width: 32px; padding: 2px 8px; font-size: 1.2em; line-height: 1.2; }
+.download-progress { margin: 12px 0; }
+.download-progress progress { width: 100%; height: 10px; }
+@media (max-width: 700px) { .notice { flex-wrap: wrap; } }
 .page-link { color: var(--accent); text-underline-offset: 3px; }
 .overview-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 30px; margin: 16px 0 28px; }
 .overview-details dt { font-size: .8em; color: var(--muted); margin-bottom: 4px; }
@@ -307,6 +314,7 @@ input, textarea { caret-color: var(--accent); }
     </header>
     <div id="page-content" aria-labelledby="page-title">
     <section id="overview-summary">
+      <div id="no-weights" class="notice" role="status" hidden><div><h2>No model weights downloaded yet</h2><p class="description">Nothing is loaded, so inference returns 503. An admin has to download the weights first.</p></div><div class="notice-actions"><a class="page-link" href="#updates">Go to downloads</a><button id="no-weights-close" type="button" aria-label="Close this warning">&times;</button></div></div>
       <div id="readiness" class="readiness" data-state="Starting"><div><h2 id="readiness-title">Checking service readiness</h2><p id="readiness-description" class="description">Waiting for the service health response.</p></div><a class="page-link" href="#updates" id="readiness-action">Model updates</a></div>
     </section>
     <div id="overview-metrics" class="tiles" aria-label="Service status">
@@ -396,6 +404,7 @@ input, textarea { caret-color: var(--accent); }
       <p id="license-note" class="description" hidden>This model has licence limits. Read its licence before commercial use (see docs/purpose.md).</p>
       <ul id="update-list" class="update-list"></ul>
       <div class="update-actions"><button id="check-updates" type="button">Check now</button><button id="update-weights" class="primary" type="button" hidden>Download new weights</button></div>
+      <div id="download-progress" class="download-progress" hidden><progress id="download-bar" max="100" aria-labelledby="download-text"></progress><p id="download-text" class="description" role="status"></p></div>
       <p id="update-note" class="description" role="status"></p>
       <p id="updates-error" class="error" role="alert"></p>
     </section>
@@ -772,7 +781,37 @@ async function refreshHealth() {
   }
 }
 function short(sha) { return sha ? sha.slice(0, 7) : "none"; }
+function megabytes(bytes) { return (bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0) + " MB"; }
+let noWeightsClosed = false;
+try { noWeightsClosed = sessionStorage.getItem("no-weights-closed") === "1"; } catch {}
+$("no-weights-close").onclick = () => {
+  noWeightsClosed = true;
+  try { sessionStorage.setItem("no-weights-closed", "1"); } catch {}
+  $("no-weights").hidden = true;
+};
+function renderProgress(progress) {
+  const box = $("download-progress"), bar = $("download-bar");
+  box.hidden = !progress || !progress.active;
+  if (box.hidden) return;
+  const known = progress.total > 0, percent = known ? Math.min(100, Math.floor(progress.done * 100 / progress.total)) : null;
+  if (known) bar.value = percent; else bar.removeAttribute("value");
+  $("download-text").textContent = "Downloading " + (progress.label || "weights") + ": " + megabytes(progress.done)
+    + (known ? " of " + megabytes(progress.total) + " (" + percent + "%)" : "");
+}
+let progressTimer = 0;
+function watchProgress(on) {
+  clearInterval(progressTimer);
+  progressTimer = 0;
+  if (!on) return;
+  progressTimer = setInterval(async () => {
+    try { renderProgress((await call("GET", "updates")).progress); } catch {}
+  }, 1000);
+}
 function renderUpdates(data) {
+  renderProgress(data.progress);
+  if (data.progress && data.progress.active && !progressTimer) watchProgress(true);
+  // Closeable warning on the overview while no weights are downloaded (Updates card is the place to fix it).
+  $("no-weights").hidden = noWeightsClosed || !data.enabled || !(data.weights || []).some(item => !item.cached) || !!(data.progress && data.progress.active);
   $("updates-description").textContent = data.description || "Looks for a newer package on PyPI and newer weights on the Hugging Face Hub.";
   const rows = [];
   if (data.package) rows.push([data.package.name + " package", data.package.installed + (data.package.update ? " → " + data.package.latest : ""), data.package.update]);
@@ -1129,12 +1168,14 @@ $("check-updates").onclick = async () => {
 $("update-weights").onclick = async () => {
   $("updates-error").textContent = "";
   busy("update-weights", true);
+  watchProgress(true);
   try {
     const data = await call("POST", "updates/weights", undefined, 1800000);
+    watchProgress(false);
     renderUpdates(data);
     if (!data.error) $("update-note").textContent += " " + (data.reload_note || "Weights downloaded; this replica loaded them. Restart the other replicas to load them too.");
   } catch (error) { report(error, "updates-error"); }
-  finally { busy("update-weights", false); }
+  finally { watchProgress(false); renderProgress(null); busy("update-weights", false); }
 };
 $("cancel-edit").onclick = () => $("edit-dialog").close();
 $("edit-form").onsubmit = async event => {

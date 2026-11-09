@@ -103,8 +103,12 @@ def _cached_sha(version: str) -> str | None:
 def _download(version: str) -> None:
     from huggingface_hub import hf_hub_download
 
-    for name in (MODEL_FILE, "config.json"):
-        hf_hub_download(repo_of(version), name, revision=f"v{version}", token=False)
+    from progress import hub_blobs, hub_total, tracking
+
+    repo, names = repo_of(version), [MODEL_FILE, "config.json"]
+    with tracking(repo, hub_total(repo, f"v{version}", names), hub_blobs(repo)):
+        for name in names:
+            hf_hub_download(repo, name, revision=f"v{version}", token=False)
 
 
 def default_marker() -> Path:

@@ -7,6 +7,8 @@ from copy import deepcopy
 import time
 from typing import Any, Awaitable, Callable
 
+from progress import progress
+
 
 class Updates:
     """Inject async revision, download and unload operations; serialize checks and updates per replica.
@@ -27,7 +29,7 @@ class Updates:
 
     def status(self) -> dict[str, Any]:
         """Return the last result without I/O or exposing mutable internal state."""
-        return {**deepcopy(self._status),
+        return {**deepcopy(self._status), "progress": progress.snapshot(),
                 "description": self._description, "reload_note": self._reload_note}
 
     async def check(self) -> dict[str, Any]:
