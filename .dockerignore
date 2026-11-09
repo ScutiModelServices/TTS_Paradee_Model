@@ -9,3 +9,4 @@ _zip_versions
 tokens.json
 settings.json
 .env
+.env.*

@@ -157,6 +157,16 @@ def load_env_file(path: str | os.PathLike[str]) -> list[str]:
     return loaded
 
 
+def load_env_files(folder: str | os.PathLike[str]) -> dict[str, list[str]]:
+    """Loads `.env.local`, then `.env` from a service folder for a run on this device.
+
+    `.env.local` is the override: the first file to set a name wins, and a real environment
+    variable beats both. Returns each existing file's newly loaded names. `.env.compose` is
+    for `docker compose --env-file` and is never read here."""
+    folder = Path(folder)
+    return {name: load_env_file(folder / name) for name in (".env.local", ".env") if (folder / name).is_file()}
+
+
 def apply_models_dir() -> None:
     """Points the Hugging Face cache (HF_HOME) and Ollama (OLLAMA_MODELS) at SERVICE_MODELS_DIR.
 

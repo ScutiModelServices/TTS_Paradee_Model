@@ -50,7 +50,7 @@ load them on their next request. `/metrics` (admin password) is Prometheus text 
 Startup, warm-up and inference never download weights. With no downloaded weights, `/health` answers `ready: false` and speech calls return 503. Open `/admin/` → **Updates** → **Download** before the first call; see the [admin guide](docs/guide-web-ui.md#updates-and-first-download) for the curl alternative.
 
 ```bash
-docker compose up -d --build        # http://<host>:29321
+docker compose --env-file .env.compose up -d --build        # http://<host>:29321
 python tools/bench.py http://127.0.0.1:29321 --save out
 ```
 

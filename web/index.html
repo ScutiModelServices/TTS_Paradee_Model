@@ -275,6 +275,49 @@ input, textarea { caret-color: var(--accent); }
   .overview-usage td { display: table-cell; width: auto; padding: 12px 8px; border-bottom: 1px solid var(--border); }
   .readiness { padding: 15px; }
 }
+/* Polish layer: depth, type detail, one entrance motion, themed browser surfaces. Tokens above stay the source of colour. */
+:root {
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 6%), 0 8px 24px -8px rgb(0 0 0 / 14%);
+  --ring: color-mix(in srgb, var(--accent) 28%, transparent);
+  scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+  scrollbar-width: thin;
+  accent-color: var(--accent);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3 { text-wrap: balance; }
+h1 { letter-spacing: -.02em; }
+.description, .hint, .muted { text-wrap: pretty; max-width: 72ch; }
+.tile-value, td time, .badge, .address, .update-list li { font-variant-numeric: tabular-nums; }
+.tile-value { letter-spacing: -.02em; }
+button { transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out), color .15s var(--ease-out), transform .1s var(--ease-out); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { cursor: not-allowed; }
+input, textarea, select { transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out); }
+input:hover:not(:disabled), textarea:hover, select:hover { border-color: color-mix(in srgb, var(--muted) 55%, var(--border)); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.sign-in .card { border-color: transparent; box-shadow: var(--shadow-raised); background: var(--surface); }
+dialog { box-shadow: var(--shadow-raised); border-color: transparent; }
+.tile { transition: border-color .15s var(--ease-out); }
+tbody tr { transition: background-color .12s var(--ease-out); }
+tbody tr:hover { background: color-mix(in srgb, var(--muted) 6%, transparent); }
+.admin-nav a { transition: background-color .15s var(--ease-out), color .15s var(--ease-out); }
+#dashboard { transition: grid-template-columns .22s var(--ease-out); }
+#page-content, .admin-sidebar { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
+#playground pre { padding: 14px 16px; border-radius: var(--radius-md); background: var(--code-bg); border: 1px solid var(--border); }
+code { padding: 1px 5px; border-radius: var(--radius-sm); background: var(--code-bg); }
+.fresh code { padding: 8px 10px; border-radius: var(--radius-md); }
+progress { accent-color: var(--accent); border-radius: var(--radius-full); }
+.badge[data-state="Starting"] svg { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+/* The one authored moment: a page view rises into place when the route changes. */
+.page-view { animation: view-in .28s var(--ease-out) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+  button[aria-busy="true"]::before { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+}
 </style>
 </head>
 <body>
@@ -741,7 +784,7 @@ async function refreshTokens() {
 async function refreshWorkers() {
   const data = await call("GET", "workers");
   $("replicas").textContent = data.replicas ?? "unknown";
-  $("workers").textContent = "Replicas: " + (data.replicas ?? "unknown") + ". Change " + CONFIG.replicasEnv + " in .env, then rebuild.";
+  $("workers").textContent = "Replicas: " + (data.replicas ?? "unknown") + ". Change " + CONFIG.replicasEnv + " in .env.compose (or .env), then rebuild.";
   if (CONFIG.extraTile) $("extra-value").textContent = data[CONFIG.extraTile.field] ?? "unknown";
 }
 async function refreshHealth() {

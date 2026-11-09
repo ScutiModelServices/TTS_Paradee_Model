@@ -20,7 +20,7 @@ Run Paradee text to speech on the CPU in Docker Desktop on the machine you work 
    Set `SERVICE_ADMIN_PASSWORD` (required to download weights through the admin page). Leave `SERVICE_PORT=29321`. Leave `SERVICE_REPLICAS=1`.
 2. Start:
    ```bash
-   docker compose up -d --build
+   docker compose --env-file .env.compose up -d --build
    ```
    Startup loads downloaded weights only; open `/admin/`, then **Updates → Download** before the first call. `tts_paradee_model_lb` starts once `/health` answers; readiness may still be false
    (300 s startup grace). Watch with `docker compose ps` and `docker compose logs -f tts_paradee_model`.
@@ -41,7 +41,7 @@ Run Paradee text to speech on the CPU in Docker Desktop on the machine you work 
 
 ## Settings
 
-In `.env` next to `docker-compose.yml`:
+In `.env.compose` next to `docker-compose.yml` (start with `docker compose --env-file .env.compose up -d --build`):
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -62,7 +62,7 @@ add the variable under `environment:` of `tts_paradee_model` to use one as a sta
 docker compose ps          # state
 docker compose logs -f tts_paradee_model
 docker compose down        # stop (the weights volume is kept)
-docker compose up -d --build && docker compose restart tts_paradee_model_lb   # after a code change
+docker compose --env-file .env.compose up -d --build && docker compose restart tts_paradee_model_lb   # after a code change
 ```
 
 ## Time it
