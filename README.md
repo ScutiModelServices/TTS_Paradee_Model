@@ -66,6 +66,8 @@ uv run pytest
 
 ## Limits worth knowing
 
+- Speed, measured with `tools/bench.py` (the Piper copy) on a 12-thread laptop CPU (2026-11-09), voice `af_heart`: 29 to 40 times real time for sentences of 6 to 9 s of audio (0.2 s wait). Not measured on the deployment machine.
+
 - One generation at a time per replica; extra calls wait, and more than the in-flight cap get 429.
 - The rate limit is per replica.
 - Output is WAV only (no ffmpeg in the image). Convert on the caller's side for MP3.

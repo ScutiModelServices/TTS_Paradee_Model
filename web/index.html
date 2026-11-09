@@ -201,7 +201,7 @@ dialog p { overflow-wrap: anywhere; }
       <div class="tile"><p id="model-label" class="tile-label">Models loaded</p><p id="model-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Replicas</p><p id="replicas" class="tile-value">—</p></div>
       <div id="extra-tile" class="tile" hidden><p id="extra-label" class="tile-label"></p><p id="extra-value" class="tile-value">—</p></div>
-      <div class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
+      <div id="thread-tile" class="tile"><p class="tile-label">CPU threads</p><p id="thread-value" class="tile-value">—</p></div>
       <div class="tile"><p class="tile-label">Active tokens</p><p id="token-count" class="tile-value">—</p></div>
     </div>
     <section id="playground" class="card"></section>
@@ -240,7 +240,7 @@ dialog p { overflow-wrap: anywhere; }
         <p class="description">Add a project name above to give it access to this service.</p>
       </div>
     </section>
-    <section class="card" aria-labelledby="threads-title">
+    <section id="threads-card" class="card" aria-labelledby="threads-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9zM9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"/></svg><h2 id="threads-title">CPU threads</h2></div>
       <p class="description">Set how many CPU threads the service uses per request.</p>
       <form id="threads">
@@ -252,18 +252,34 @@ dialog p { overflow-wrap: anywhere; }
         </div>
       </form>
       <p class="description">Saved to settings.json. Other replicas apply it within a few seconds.</p>
+      <p id="thread-note" class="description" hidden></p>
+      <p id="gpu-note" class="description" hidden>This service runs on a GPU. CPU threads only serve the parts that run on the CPU.</p>
       <p id="saved" class="saved" role="status"></p>
       <p id="threads-error" class="error" role="alert"></p>
     </section>
-    <section class="card" aria-labelledby="models-title">
+    <section id="project-models-card" class="card" aria-labelledby="models-title">
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5"/></svg><h2 id="models-title">Project models</h2></div>
       <p class="description">Models loaded for one project, as seen by the replica that answered. A project without one uses the base model.</p>
       <ul id="project-models" class="update-list"></ul>
       <p id="project-models-empty" class="description">None loaded.</p>
     </section>
+    <section id="voices-card" class="card" aria-labelledby="voices-title" hidden>
+      <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5 11a7 7 0 0 0 14 0M12 18v3"/></svg><h2 id="voices-title">Cloned voices</h2></div>
+      <p class="description">A WAV clip of a few seconds and exactly what it says. Every replica sees a new voice at once. Built-in voices cannot be changed.</p>
+      <ul id="voice-list" class="update-list"></ul>
+      <form id="voice-form" class="create-form">
+        <div class="field"><label for="voice-name">Voice name</label><input id="voice-name" autocomplete="off" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]*" required></div>
+        <div class="field"><label for="voice-file">Clip (WAV, up to 10 MB)</label><input id="voice-file" type="file" accept="audio/wav,.wav" required></div>
+        <div class="field"><label for="voice-text">What the clip says</label><input id="voice-text" autocomplete="off" maxlength="2000" required></div>
+        <button id="voice-add" class="primary">Add voice</button>
+      </form>
+      <p id="voice-note" class="saved" role="status"></p>
+      <p id="voice-error" class="error" role="alert"></p>
+    </section>
     <section id="updates-card" class="card" aria-labelledby="updates-title" hidden>
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg><h2 id="updates-title">Updates</h2></div>
       <p id="updates-description" class="description">Looks for a newer package on PyPI and newer weights on the Hugging Face Hub.</p>
+      <p id="license-note" class="description" hidden>This model has licence limits. Read its licence before commercial use (see docs/purpose.md).</p>
       <ul id="update-list" class="update-list"></ul>
       <div class="update-actions"><button id="check-updates" type="button">Check now</button><button id="update-weights" class="primary" type="button" hidden>Download new weights</button></div>
       <p id="update-note" class="description" role="status"></p>
@@ -301,7 +317,7 @@ dialog p { overflow-wrap: anywhere; }
 <script src="playground.js"></script>
 <script>
 // Per-service configuration. The rest of this page is shared verbatim.
-const CONFIG = {connect: {host: "tts_paradee_model_lb", port: 29321}, title: "TTS_Paradee_Model", address: location.origin, threadLabel: "CPU threads", threadField: "num_thread", adminEnv: "SERVICE_ADMIN_PASSWORD", replicasEnv: "SERVICE_REPLICAS", extraTile: {label: "Parallel generations", field: "parallel"}, updates: true, playground: {"operations":[{"label":"Speak","route":"/v1/speak","method":"POST","fields":[{"key":"text","label":"Text","type":"textarea","required":true,"maxLength":5000,"default":"Hello from the playground."},{"key":"voice","label":"Voice","type":"select","options":[""]},{"key":"speed","label":"Speed","type":"number","min":0.5,"max":2,"step":0.1,"default":1},{"key":"stream","label":"Stream response","type":"checkbox","default":true}],"response":"audio","encoding":"json","lookup":{"route":"/v1/voices","key":"voices","field":"voice","label":"Load allowed voices"}}]}};
+const CONFIG = {tags: ["cpu", "streaming"], connect: {host: "tts_paradee_model_lb", port: 29321}, title: "TTS_Paradee_Model", address: location.origin, threadLabel: "CPU threads", threadField: "num_thread", adminEnv: "SERVICE_ADMIN_PASSWORD", replicasEnv: "SERVICE_REPLICAS", extraTile: {label: "Parallel generations", field: "parallel"}, updates: true, playground: {"operations":[{"label":"Speak","route":"/v1/speak","method":"POST","fields":[{"key":"text","label":"Text","type":"textarea","required":true,"maxLength":5000,"default":"Hello from the playground."},{"key":"voice","label":"Voice","type":"select","options":[""]},{"key":"speed","label":"Speed","type":"number","min":0.5,"max":2,"step":0.1,"default":1},{"key":"stream","label":"Stream response","type":"checkbox","default":true}],"response":"audio","encoding":"json","lookup":{"route":"/v1/voices","key":"voices","field":"voice","label":"Load allowed voices"}}]}};
 
 const $ = id => document.getElementById(id);
 const storageKey = CONFIG.title + ":admin";
@@ -411,6 +427,7 @@ function signOut(focus = true) {
   $("project-models").replaceChildren();
   $("settings-list").replaceChildren();
   $("settings-card").hidden = true;
+  $("voice-list").replaceChildren();
   settingRows = [];
   clearTimeout(settingsTimer);
   $("settings-note").textContent = "";
@@ -641,6 +658,62 @@ function renderUpdates(data) {
     : !data.checked_at ? "Not checked yet."
     : "Checked " + relative(data.checked_at) + "." + (data.package && data.package.update ? " A newer package needs uv lock --upgrade-package " + data.package.name + ", then a rebuild." : "");
 }
+/* Tags (CONFIG.tags, the same as docs/purpose.md) switch cards and notes: voice-cloning = Cloned voices card, gpu = threads note, license-restricted = Updates note, host-threads = no CPU threads card (the runtime picks threads), project-models = Project models card. CONFIG.threadNote adds a line to the threads card. */
+const hasTag = tag => (CONFIG.tags || []).includes(tag);
+$("voices-card").hidden = !hasTag("voice-cloning");
+$("gpu-note").hidden = !hasTag("gpu");
+$("thread-note").textContent = CONFIG.threadNote || "";
+$("thread-note").hidden = !CONFIG.threadNote;
+$("threads-card").hidden = $("thread-tile").hidden = hasTag("host-threads");
+$("project-models-card").hidden = !hasTag("project-models");
+$("license-note").hidden = !hasTag("license-restricted");
+function fileBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(new Error("Could not read the clip."));
+    reader.readAsDataURL(file);
+  });
+}
+function renderVoices(data) {
+  $("voice-list").replaceChildren(...data.voices.map(voice => {
+    const item = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = voice.name + (voice.name === data.default ? " (default)" : "") + (voice.cloned ? "" : " (built-in)");
+    item.append(label);
+    if (voice.cloned) {
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "danger"; remove.textContent = "Delete";
+      remove.setAttribute("aria-label", "Delete voice " + voice.name);
+      remove.onclick = async () => {
+        $("voice-error").textContent = "";
+        try { await call("DELETE", "voices/" + encodeURIComponent(voice.name)); await refreshVoices(); }
+        catch (error) { report(error, "voice-error"); }
+      };
+      item.append(remove);
+    }
+    return item;
+  }));
+}
+async function refreshVoices() {
+  if (hasTag("voice-cloning")) renderVoices(await call("GET", "voices"));
+}
+$("voice-form").onsubmit = async event => {
+  event.preventDefault();
+  const file = $("voice-file").files[0];
+  $("voice-error").textContent = ""; $("voice-note").textContent = "";
+  if (!file) return;
+  if (file.size > 10000000) { $("voice-error").textContent = "The clip is over 10 MB."; return; }
+  busy("voice-add", true);
+  try {
+    const name = $("voice-name").value.trim();
+    await call("PUT", "voices/" + encodeURIComponent(name), {audio_base64: await fileBase64(file), transcript: $("voice-text").value.trim()}, 60000);
+    $("voice-form").reset();
+    $("voice-note").textContent = "Saved voice " + name + ".";
+    await refreshVoices();
+  } catch (error) { report(error, "voice-error"); }
+  finally { busy("voice-add", false); }
+};
 async function refreshUpdates() {
   if (CONFIG.updates) renderUpdates(await call("GET", "updates"));
 }
@@ -736,7 +809,7 @@ async function signIn(password) {
     $("signin").hidden = true;
     $("dashboard").hidden = false;
     $("signout").focus();
-    await Promise.all([refreshHealth(), refreshWorkers().catch(error => report(error, "page-error")), refreshUpdates().catch(error => report(error, "page-error")), refreshSettings().catch(error => report(error, "page-error"))]);
+    await Promise.all([refreshHealth(), refreshWorkers().catch(error => report(error, "page-error")), refreshUpdates().catch(error => report(error, "page-error")), refreshVoices().catch(error => report(error, "page-error")), refreshSettings().catch(error => report(error, "page-error"))]);
     if (admin) poll = setInterval(pollStatus, 10000);
   } catch (error) {
     try { sessionStorage.removeItem(storageKey); } catch {}
