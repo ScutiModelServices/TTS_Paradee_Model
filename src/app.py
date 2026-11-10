@@ -343,13 +343,12 @@ def main() -> None:
 
     import uvicorn
 
-    if "--dotenv" in sys.argv[1:]:  # run.bat asks for it; a plain `python src/app.py` and Docker never read .env
-        env_file = Path(__file__).resolve().parents[1] / ".env"
-        if env_file.is_file():
-            names = settings.load_env_file(env_file)
-            print(f".env: loaded {', '.join(names) or 'no variables'} (names only; a real environment variable wins)", flush=True)
-        else:
-            print(".env: no file in the service folder", flush=True)
+    if "--dotenv" in sys.argv[1:]:  # run.bat asks for it; a plain `python src/app.py` and Docker never read .env files
+        loaded = settings.load_env_files(Path(__file__).resolve().parents[1])
+        for name, names in loaded.items():
+            print(f"{name}: loaded {', '.join(names) or 'no variables'} (names only; a real environment variable wins)", flush=True)
+        if not loaded:
+            print(".env.local / .env: no file in the service folder", flush=True)
     settings.apply_models_dir()  # SERVICE_MODELS_DIR -> HF_HOME / OLLAMA_MODELS
 
     store = TokenStore(os.environ.get("SERVICE_TOKENS_FILE", "tokens.json"))
