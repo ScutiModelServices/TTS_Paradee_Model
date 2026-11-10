@@ -130,7 +130,7 @@
 
     url(route) {
       if (!route.startsWith("/") || route.startsWith("//")) throw new Error("Only this service's public routes are allowed.");
-      const url = new URL(route, location.origin);
+      const url = new URL(route.slice(1), new URL("../", location.href)); // the service root, so a path-prefix proxy (ServiceHub /s/<id>/) keeps working
       if (url.origin !== location.origin) throw new Error("Request must stay on this service.");
       return url;
     }
