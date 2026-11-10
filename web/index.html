@@ -441,6 +441,14 @@ progress { accent-color: var(--accent); border-radius: var(--radius-full); }
       <p id="voice-note" class="saved" role="status"></p>
       <p id="voice-error" class="error" role="alert"></p>
     </section>
+    <section id="variants-card" class="card" aria-labelledby="variants-title" hidden>
+      <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg><h2 id="variants-title">Model variant</h2></div>
+      <p class="description">Pick the model size, number format and device. Only variants this machine can run can be chosen; the memory figures are estimates, not measurements.</p>
+      <p id="variants-hardware" class="description"></p>
+      <ul id="variant-list" class="update-list"></ul>
+      <p id="variants-note" class="saved" role="status"></p>
+      <p id="variants-error" class="error" role="alert"></p>
+    </section>
     <section id="updates-card" class="card" aria-labelledby="updates-title" hidden>
       <div class="section-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg><h2 id="updates-title">Updates</h2></div>
       <p id="updates-description" class="description">Looks for a newer package on PyPI and newer weights on the Hugging Face Hub.</p>
@@ -492,6 +500,39 @@ const storageKey = CONFIG.title + ":admin";
 let admin = "", session = new AbortController(), poll, polling = false, initializedThreads = false;
 let tokenRows = [], pendingRevoke = null, pendingEdit = null, settingRows = [], settingsTimer, savedTimer, copyTimer, tokenVersion = 0;
 const playground = Playground.mount($("playground"), CONFIG.playground, {secrets: () => [admin]});
+/* The playground signs in with a temporary token made from this admin session (revoked on sign-out); no pasting. */
+const PLAYGROUND_TOKEN = "playground (temporary)";
+let playgroundToken = "", playgroundTokenId = "", playgroundMint = null;
+{
+  const field = $("pg-token").closest(".pg-field");
+  field.hidden = true;
+  if (field.nextElementSibling?.classList.contains("description")) field.nextElementSibling.hidden = true;
+}
+function fillPlaygroundToken() { if (playgroundToken) $("pg-token").value = playgroundToken; }
+function autoLoadChoices() {
+  const load = $("pg-load");
+  if (load && $("pg-token").value && !load.disabled && !$("pg-send").disabled) load.click();
+}
+function ensurePlaygroundToken() {
+  playgroundMint ??= (async () => {
+    try {
+      for (const row of (await call("GET", "tokens")).tokens) if (row.name === PLAYGROUND_TOKEN) await call("DELETE", "tokens/" + encodeURIComponent(row.id)); // left by a closed tab
+      const made = await call("POST", "tokens", {name: PLAYGROUND_TOKEN, expires_days: 1});
+      playgroundToken = made.token; playgroundTokenId = made.id;
+      fillPlaygroundToken(); autoLoadChoices(); await refreshTokens();
+    } catch (error) { playgroundMint = null; report(error, "page-error"); }
+  })();
+}
+function dropPlaygroundToken() {
+  if (playgroundTokenId && admin) fetch("../admin/tokens/" + encodeURIComponent(playgroundTokenId), {method: "DELETE", headers: {"X-Internal-Token": admin}, keepalive: true}).catch(() => {});
+  playgroundToken = ""; playgroundTokenId = ""; playgroundMint = null;
+}
+{
+  const reset = playground.reset.bind(playground);
+  playground.reset = () => { reset(); fillPlaygroundToken(); };
+  new MutationObserver(autoLoadChoices).observe($("pg-fields"), {childList: true});
+  window.addEventListener("pagehide", dropPlaygroundToken);
+}
 let theme = "system";
 try { theme = localStorage.getItem("admin-theme") || "system"; } catch {}
 if (!["system", "light", "dark"].includes(theme)) theme = "system";
@@ -577,6 +618,7 @@ function forgetToken() {
   clearTimeout(copyTimer);
 }
 function signOut(focus = true) {
+  dropPlaygroundToken();
   playground.reset();
   session.abort();
   session = new AbortController();
@@ -879,9 +921,10 @@ function renderUpdates(data) {
     : !data.checked_at ? "Not checked yet."
     : "Checked " + relative(data.checked_at) + "." + (data.package && data.package.update ? " A newer package needs uv lock --upgrade-package " + data.package.name + ", then a rebuild." : "");
 }
-/* Tags (CONFIG.tags, the same as docs/purpose.md) switch cards and notes: voice-cloning = Cloned voices card, gpu = threads note, license-restricted = Updates note, host-threads = no CPU threads card (the runtime picks threads), project-models = Project models card. CONFIG.threadNote adds a line to the threads card. */
+/* Tags (CONFIG.tags, the same as docs/purpose.md) switch cards and notes: voice-cloning = Cloned voices card, variants = Model variant card, gpu = threads note, license-restricted = Updates note, host-threads = no CPU threads card (the runtime picks threads), project-models = Project models card. CONFIG.threadNote adds a line to the threads card. */
 const hasTag = tag => (CONFIG.tags || []).includes(tag);
 $("voices-card").hidden = !hasTag("voice-cloning");
+$("variants-card").hidden = !hasTag("variants");
 $("gpu-note").hidden = !hasTag("gpu");
 $("thread-note").textContent = CONFIG.threadNote || "";
 $("thread-note").hidden = !CONFIG.threadNote;
@@ -902,6 +945,7 @@ class AdminNavigation {
       {id: "playground", label: "Playground", description: "Test model requests with a public service token.", nodes: ["playground"], icon: "m9 3 0 6-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"},
       {id: "tokens", label: "Access tokens", description: "Manage scoped access, rate limits and expiration.", nodes: ["tokens-card"], icon: "M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM11 11v10m0-4h4m-4 4h3"},
       {id: "runtime", label: "Runtime & settings", description: "Resource controls and model configuration.", nodes: ["threads-card", "settings-card", "workers"], icon: "M4 7h16M4 17h16M8 4v6m8 4v6"},
+      ...(hasTag("variants") ? [{id: "variants", label: "Model variant", description: "Choose the model size, number format and device this machine can run.", nodes: ["variants-card"], icon: "M4 7h16M4 12h16M4 17h10"}] : []),
       ...(config.updates ? [{id: "updates", label: "Model updates", description: "Check availability and explicitly download model weights.", nodes: ["updates-card"], icon: "M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"}] : []),
       {id: "connections", label: "Connections", description: "Use the address that matches where your caller runs.", nodes: ["connect-card"], icon: "m9 15 6-6m-8 4-2 2a4 4 0 0 0 6 6l2-2m-2-14 2-2a4 4 0 0 1 6 6l-2 2"},
       ...(hasTag("project-models") ? [{id: "models", label: "Project models", description: "Models available to scoped projects.", nodes: ["project-models-card"], icon: "m12 3-9 5 9 5 9-5-9-5ZM3 13l9 5 9-5M3 18l9 5 9-5"}] : []),
@@ -1001,6 +1045,33 @@ function renderVoices(data) {
     }
     return item;
   }));
+}
+function renderVariants(data) {
+  $("variants-hardware").textContent = data.summary;
+  $("variant-list").replaceChildren(...data.variants.map(row => {
+    const item = document.createElement("li");
+    const text = document.createElement("span");
+    text.textContent = row.title + " · " + row.detail + (row.fits === true ? "" : " · " + row.reason);
+    item.append(text);
+    const use = document.createElement("button");
+    use.type = "button";
+    use.textContent = row.current ? "In use" : "Use";
+    use.disabled = row.current || row.fits === false;
+    use.setAttribute("aria-label", (row.current ? "In use: " : "Use ") + row.title);
+    use.onclick = async () => {
+      $("variants-error").textContent = ""; $("variants-note").textContent = "";
+      try {
+        const saved = await call("PUT", "variant", {id: row.id});
+        $("variants-note").textContent = "Saved. Restart the service to apply it" + (saved.downloaded ? "." : ", then press Download on the Updates card (these weights are not downloaded yet).");
+        await refreshVariants();
+      } catch (error) { report(error, "variants-error"); }
+    };
+    item.append(use);
+    return item;
+  }));
+}
+async function refreshVariants() {
+  if (hasTag("variants")) renderVariants(await call("GET", "variants"));
 }
 async function refreshVoices() {
   if (hasTag("voice-cloning")) renderVoices(await call("GET", "voices"));
@@ -1116,7 +1187,8 @@ async function signIn(password) {
     $("signin").hidden = true;
     $("dashboard").hidden = false;
     $("signout").focus();
-    await Promise.all([refreshHealth(), refreshWorkers().catch(error => report(error, "page-error")), refreshUpdates().catch(error => report(error, "page-error")), refreshVoices().catch(error => report(error, "page-error")), refreshSettings().catch(error => report(error, "page-error"))]);
+    ensurePlaygroundToken();
+    await Promise.all([refreshHealth(), refreshWorkers().catch(error => report(error, "page-error")), refreshUpdates().catch(error => report(error, "page-error")), refreshVoices().catch(error => report(error, "page-error")), refreshVariants().catch(error => report(error, "page-error")), refreshSettings().catch(error => report(error, "page-error"))]);
     if (admin) poll = setInterval(pollStatus, 10000);
   } catch (error) {
     try { sessionStorage.removeItem(storageKey); } catch {}
