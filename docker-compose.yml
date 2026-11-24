@@ -7,6 +7,7 @@ name: tts_paradee_model
 
 services:
   tts_paradee_model:
+    extra_hosts: ["host.docker.internal:host-gateway"]  # reaches services published on the host
     build: .
     image: tts_paradee_model:latest
     restart: unless-stopped
